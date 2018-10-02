@@ -211,7 +211,9 @@ public class Task implements Callable<AnalyzedModel> {
 		Set<String> classificationsSet = new HashSet<>();
 		List<IfcClassification> classifications = model.getAll(IfcClassification.class);
 		for (IfcClassification ifcClassificationReference : classifications) {
-			classificationsSet.add(ifcClassificationReference.getName());
+			if (ifcClassificationReference.getName() != null) {
+				classificationsSet.add(ifcClassificationReference.getName());
+			}
 		}
 		metaData.setClassifications(classificationsSet);
 		

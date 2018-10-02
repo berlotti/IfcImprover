@@ -32,7 +32,9 @@ public class MetaData {
 		row.createCell(8).setCellValue(Joiner.on(", ").join(ifcHeader.getAuthor()));
 		row.createCell(9).setCellValue(Joiner.on(", ").join(ifcHeader.getDescription()));
 		row.createCell(10).setCellValue(dateFormat.format(ifcHeader.getTimeStamp()));
-		row.createCell(11).setCellValue(Joiner.on(", ").join(classifications));
+		if (classifications != null) {
+			row.createCell(11).setCellValue(Joiner.on(", ").join(classifications));
+		}
 	}
 
 	public int getRevisionId() {

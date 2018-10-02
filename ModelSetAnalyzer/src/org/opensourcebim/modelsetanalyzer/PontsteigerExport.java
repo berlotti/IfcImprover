@@ -15,7 +15,7 @@ import org.bimserver.shared.exceptions.ServiceException;
 
 public class PontsteigerExport {
 	public static void main(String[] args) {
-		try (BimServerClientFactory factory = new JsonBimServerClientFactory("https://epic.logic-labs.nl")) {
+		try (BimServerClientFactory factory = new JsonBimServerClientFactory("http://localhost:8080")) {
 			try (BimServerClientInterface client = factory.create(new UsernamePasswordAuthenticationInfo("admin@bimserver.org", "admin"))) {
 				ModelSetAnalyzer modelSetAnalyzer = new ModelSetAnalyzer(client);
 				List<SProject> projects = client.getServiceInterface().getProjectsByName("Pontsteiger Full 2");
