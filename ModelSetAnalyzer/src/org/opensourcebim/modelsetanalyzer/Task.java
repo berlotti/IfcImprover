@@ -16,12 +16,14 @@ import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.emf.ModelMetaData;
 import org.bimserver.emf.PackageMetaData;
+import org.bimserver.emf.Schema;
 import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.Bounds;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.geometry.GeometryPackage;
 import org.bimserver.models.ifc2x3tc1.Ifc2x3tc1Package;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
+import org.bimserver.models.ifc4.IfcClassificationReference;
 import org.bimserver.models.ifc4.IfcObjectDefinition;
 import org.bimserver.models.ifc4.IfcRelAssignsToProduct;
 import org.bimserver.models.ifc4.IfcRelDefinesByType;
@@ -119,10 +121,14 @@ public class Task implements Callable<AnalyzedModel> {
 			relatedObjects.addField("RelatedObjects");
 			Include referencedBy = relatedObjects.createInclude();
 			referencedBy.addType(packageMetaData.getEClass("IfcTypeProduct"), true);
-			referencedBy.addField("Types");
-			Include relatedObjects2 = referencedBy.createInclude();
-			relatedObjects2.addType(packageMetaData.getEClass("IfcRelDefinesByType"), true);
-			relatedObjects2.addField("RelatedObjects");
+			if (packageMetaData.getSchema() == Schema.IFC4) {
+				referencedBy.addField("Types");
+				Include relatedObjects2 = referencedBy.createInclude();
+				relatedObjects2.addType(packageMetaData.getEClass("IfcRelDefinesByType"), true);
+				relatedObjects2.addField("RelatedObjects");
+			} else {
+				// In ifc2x3tc1 this relation is missing, which is annoying
+			}
 			
 			addMeta(model);
 
@@ -198,7 +204,11 @@ public class Task implements Callable<AnalyzedModel> {
 		String classificationDescription = "";
 		if (relatingClassification != null) {
 			classificationDescription = (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Location"));
-			classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Identification"));
+			if (relatingClassification instanceof IfcClassificationReference) {
+				classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Identification"));
+			} else {
+				classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("ItemReference"));
+			}
 			classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Name"));
 		}
 		classificationDescription += " " + (String)ifcRelAssociatesClassification.eGet(nameFeature);
