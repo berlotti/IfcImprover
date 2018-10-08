@@ -11,22 +11,28 @@ import org.bimserver.database.queries.om.Include;
 import org.bimserver.database.queries.om.Include.TypeDef;
 import org.bimserver.database.queries.om.JsonQueryObjectModelConverter;
 import org.bimserver.database.queries.om.Query;
-import org.bimserver.database.queries.om.QueryException;
 import org.bimserver.database.queries.om.QueryPart;
+import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.emf.ModelMetaData;
+import org.bimserver.emf.PackageMetaData;
 import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.Bounds;
+import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.geometry.GeometryPackage;
 import org.bimserver.models.ifc2x3tc1.Ifc2x3tc1Package;
-import org.bimserver.models.ifc2x3tc1.IfcClassification;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
-import org.bimserver.models.ifc2x3tc1.IfcRelAssociatesClassification;
-import org.bimserver.models.ifc2x3tc1.IfcRoot;
+import org.bimserver.models.ifc4.IfcObjectDefinition;
+import org.bimserver.models.ifc4.IfcRelAssignsToProduct;
+import org.bimserver.models.ifc4.IfcRelDefinesByType;
+import org.bimserver.models.ifc4.IfcTypeProduct;
 import org.bimserver.models.store.IfcHeader;
 import org.bimserver.plugins.services.BimServerClientInterface;
 import org.bimserver.utils.IfcTools3d;
 import org.bimserver.utils.IfcUtils;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EStructuralFeature;
 
 public class Task implements Callable<AnalyzedModel> {
 	private SProject project;
@@ -50,11 +56,12 @@ public class Task implements Callable<AnalyzedModel> {
 		try {
 			IfcModelInterface model = client.getModel(project, roid, false, false, true);
 			
-			Query preloadQuery = new Query(model.getPackageMetaData());
+			PackageMetaData packageMetaData = model.getPackageMetaData();
+			Query preloadQuery = new Query(packageMetaData);
 			QueryPart objectsPart = preloadQuery.createQueryPart();
-			objectsPart.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true));
+			objectsPart.addType(new TypeDef(packageMetaData.getEClass("IfcProduct"), true));
 			Include include = objectsPart.createInclude();
-			include.addType(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true);
+			include.addType(packageMetaData.getEClass("IfcProduct"), true);
 			include.addField("geometry");
 			Include include2 = include.createInclude();
 			include2.addType(new TypeDef(GeometryPackage.eINSTANCE.getGeometryInfo(), false));
@@ -62,55 +69,64 @@ public class Task implements Callable<AnalyzedModel> {
 
 			// Properties
 			Include createInclude = objectsPart.createInclude();
-			createInclude.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true));
+			createInclude.addType(new TypeDef(packageMetaData.getEClass("IfcProduct"), true));
 			createInclude.addField("IsDefinedBy");
 			Include isDefinedBy = createInclude.createInclude();
-			isDefinedBy.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcRelDefinesByProperties(), false));
+			isDefinedBy.addType(new TypeDef(packageMetaData.getEClass("IfcRelDefinesByProperties"), false));
 			isDefinedBy.addField("RelatingPropertyDefinition");
 			Include relatingPropertyDefinition = isDefinedBy.createInclude();
-			relatingPropertyDefinition.addType(Ifc2x3tc1Package.eINSTANCE.getIfcPropertySet(), false);
+			relatingPropertyDefinition.addType(packageMetaData.getEClass("IfcPropertySet"), false);
 			relatingPropertyDefinition.addField("HasProperties");
 			
 			// Materials
 			Include associations = objectsPart.createInclude();
-			associations.addType(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true);
+			associations.addType(packageMetaData.getEClass("IfcProduct"), true);
 			associations.addField("HasAssociations");
 			Include associatesMaterial = associations.createInclude();
-			associatesMaterial.addType(Ifc2x3tc1Package.eINSTANCE.getIfcRelAssociatesMaterial(), true);
+			associatesMaterial.addType(packageMetaData.getEClass("IfcRelAssociatesMaterial"), true);
 			associatesMaterial.addField("RelatingMaterial");
 			
 			Include ifcMaterialLayerSetUsage = associatesMaterial.createInclude();
-			ifcMaterialLayerSetUsage.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayerSetUsage(), false);
+			ifcMaterialLayerSetUsage.addType(packageMetaData.getEClass("IfcMaterialLayerSetUsage"), false);
 			ifcMaterialLayerSetUsage.addField("ForLayerSet");
 			Include ifcMaterialLayer = ifcMaterialLayerSetUsage.createInclude();
-			ifcMaterialLayer.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayerSet(), true);
+			ifcMaterialLayer.addType(packageMetaData.getEClass("IfcMaterialLayerSet"), true);
 			ifcMaterialLayer.addField("MaterialLayers");
 			Include layers = ifcMaterialLayer.createInclude();
-			layers.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayer(), false));
+			layers.addType(new TypeDef(packageMetaData.getEClass("IfcMaterialLayer"), false));
 			layers.addField("Material");
 			
 			Include ifcMaterialLayer3 = associatesMaterial.createInclude();
-			ifcMaterialLayer3.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayerSet(), true);
+			ifcMaterialLayer3.addType(packageMetaData.getEClass("IfcMaterialLayerSet"), true);
 			ifcMaterialLayer3.addField("MaterialLayers");
 			Include layers3 = ifcMaterialLayer.createInclude();
-			layers3.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayer(), false));
+			layers3.addType(new TypeDef(packageMetaData.getEClass("IfcMaterialLayer"), false));
 			layers3.addField("Material");
 			
 			Include ifcMaterialList = associatesMaterial.createInclude();
-			ifcMaterialList.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialList(), false);
+			ifcMaterialList.addType(packageMetaData.getEClass("IfcMaterialList"), false);
 			ifcMaterialList.addField("Materials");
 
 			Include ifcMaterialLayer2 = associatesMaterial.createInclude();
-			ifcMaterialLayer2.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayer(), false);
+			ifcMaterialLayer2.addType(packageMetaData.getEClass("IfcMaterialLayer"), false);
 			ifcMaterialLayer2.addField("Material");
 			
 			QueryPart classifications = preloadQuery.createQueryPart();
-			classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcClassificationReference(), false));
-			classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcRelAssociatesClassification(), false));
+			classifications.addType(new TypeDef(packageMetaData.getEClass("IfcClassificationReference"), false));
+			classifications.addType(new TypeDef(packageMetaData.getEClass("IfcRelAssociatesClassification"), false));
+			Include relatedObjects = classifications.createInclude();
+			relatedObjects.addType(packageMetaData.getEClass("IfcRelAssociatesClassification"), false);
+			relatedObjects.addField("RelatedObjects");
+			Include referencedBy = relatedObjects.createInclude();
+			referencedBy.addType(packageMetaData.getEClass("IfcTypeProduct"), true);
+			referencedBy.addField("Types");
+			Include relatedObjects2 = referencedBy.createInclude();
+			relatedObjects2.addType(packageMetaData.getEClass("IfcRelDefinesByType"), true);
+			relatedObjects2.addField("RelatedObjects");
 			
 			addMeta(model);
 
-			model.query(new JsonQueryObjectModelConverter(model.getPackageMetaData()).toJson(preloadQuery), true);
+			model.query(new JsonQueryObjectModelConverter(packageMetaData).toJson(preloadQuery), true);
 			
 			addObjects(model);
 			addAggregations(model);
@@ -124,62 +140,94 @@ public class Task implements Callable<AnalyzedModel> {
 	}
 
 	private void addObjects(IfcModelInterface model) {
-		List<IfcProduct> products = model.getAllWithSubTypes(IfcProduct.class);
-		Map<IfcRoot, Set<String>> classifications = new HashMap<>();
-		for (IfcRelAssociatesClassification ifcRelAssociatesClassification : model.getAll(IfcRelAssociatesClassification.class)) {
-			for (IfcRoot ifcRoot : ifcRelAssociatesClassification.getRelatedObjects()) {
-				Set<String> set = classifications.get(ifcRoot);
-				if (set == null) {
-					set = new HashSet<>();
-					classifications.put(ifcRoot, set);
+		PackageMetaData packageMetaData = model.getPackageMetaData();
+		List<IdEObject> products = model.getAllWithSubTypes(packageMetaData.getEClass("IfcProduct"));
+		Map<Long, Set<String>> classifications = new HashMap<>();
+		EClass ifcRelAssociatesClassificationEClass = packageMetaData.getEClass("IfcRelAssociatesClassification");
+		List<IdEObject> all = model.getAllWithSubTypes(ifcRelAssociatesClassificationEClass);
+		for (IdEObject ifcRelAssociatesClassification : all) {
+			for (IdEObject ifcRoot : (List<IdEObject>)ifcRelAssociatesClassification.eGet(ifcRelAssociatesClassificationEClass.getEStructuralFeature("RelatedObjects"))) {
+				if (ifcRoot instanceof IfcTypeProduct) {
+					IfcTypeProduct ifcTypeProduct = (IfcTypeProduct)ifcRoot;
+					for (IfcRelDefinesByType ifcRelAssignsToProduct : ifcTypeProduct.getTypes()) {
+						for (IfcObjectDefinition ifcObjectDefinition : ifcRelAssignsToProduct.getRelatedObjects()) {
+							if (ifcObjectDefinition instanceof org.bimserver.models.ifc4.IfcProduct) {
+								addProductToSet(classifications, ifcRelAssociatesClassificationEClass, ifcRelAssociatesClassification, ifcObjectDefinition);
+							} else {
+								System.out.println("Unimplemented " + ifcObjectDefinition);
+							}
+						}
+					}
 				}
-				if (ifcRelAssociatesClassification.getName() != null) {
-					set.add(ifcRelAssociatesClassification.getName());
-				}
+				addProductToSet(classifications, ifcRelAssociatesClassificationEClass, ifcRelAssociatesClassification, ifcRoot);
 			}
 		}
-		for (IfcProduct ifcProduct : products) {
+		for (IdEObject ifcProduct : products) {
 			ProductResult productResult = new ProductResult();
 			
 			productResult.setRevisionId(revisionId);
 			productResult.setType(ifcProduct.eClass().getName());
-			productResult.setName(ifcProduct.getName());
-			productResult.setDescription(ifcProduct.getDescription());
-			productResult.setGlobalId(ifcProduct.getGlobalId());
+			productResult.setName((String)ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("Name")));
+			productResult.setDescription((String)ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("Description")));
+			productResult.setGlobalId((String)ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("GlobalId")));
 			productResult.setMaterial(IfcUtils.getMaterial(ifcProduct));
-			productResult.setClassifications(classifications.get(ifcProduct));
+			productResult.setClassifications(classifications.get(ifcProduct.getOid()));
 			productResult.setNrPropertySets(IfcUtils.getNrOfPropertySets(ifcProduct));
 			productResult.setNrPSets(IfcUtils.getNrOfPSets(ifcProduct));
 			productResult.setNrProperties(IfcUtils.getNrOfProperties(ifcProduct));
 			
 			analyzedModel.addProduct(productResult);
 
-			if (ifcProduct.getGeometry() != null) {
-				productResult.setNrTriangles(ifcProduct.getGeometry().getPrimitiveCount());
-				productResult.setArea((float) ifcProduct.getGeometry().getArea());
-				productResult.setVolume((float) ifcProduct.getGeometry().getVolume());
+			GeometryInfo geometry = (GeometryInfo) ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("geometry"));
+			if (geometry != null) {
+				productResult.setNrTriangles(geometry.getPrimitiveCount());
+				productResult.setArea((float) geometry.getArea());
+				productResult.setVolume((float) geometry.getVolume());
  			}
 		}
 	}
 
+	private void addProductToSet(Map<Long, Set<String>> classifications, EClass ifcRelAssociatesClassificationEClass, IdEObject ifcRelAssociatesClassification, IdEObject ifcObjectDefinition) {
+		Set<String> set = classifications.get(ifcObjectDefinition.getOid());
+		if (set == null) {
+			set = new HashSet<>();
+			classifications.put(ifcObjectDefinition.getOid(), set);
+		}
+		EStructuralFeature nameFeature = ifcRelAssociatesClassificationEClass.getEStructuralFeature("Name");
+		IdEObject relatingClassification = (IdEObject) ifcRelAssociatesClassification.eGet(ifcRelAssociatesClassification.eClass().getEStructuralFeature("RelatingClassification"));
+		String classificationDescription = "";
+		if (relatingClassification != null) {
+			classificationDescription = (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Location"));
+			classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Identification"));
+			classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Name"));
+		}
+		classificationDescription += " " + (String)ifcRelAssociatesClassification.eGet(nameFeature);
+		if (ifcRelAssociatesClassification.eGet(nameFeature) != null) {
+			set.add(classificationDescription);
+		}
+	}
+
 	private void addAggregations(IfcModelInterface model) {
+		PackageMetaData packageMetaData = model.getPackageMetaData();
+		
 		Aggregation aggregation = new Aggregation();
 		
 		aggregation.setRevisionId(revisionId);
 		aggregation.setModelSize(model.size());
-		aggregation.setIfcRelationsShipCount(model.countWithSubtypes(Ifc2x3tc1Package.eINSTANCE.getIfcRelationship()));
-		aggregation.setIfcProductCount(model.countWithSubtypes(Ifc2x3tc1Package.eINSTANCE.getIfcProduct()));
+		aggregation.setIfcRelationsShipCount(model.countWithSubtypes(packageMetaData.getEClass("IfcRelationship")));
+		aggregation.setIfcProductCount(model.countWithSubtypes(packageMetaData.getEClass("IfcProduct")));
 		
 		float m2 = 0;
 		float m3 = 0;
 		float m2bb = 0;
 		float m3bb = 0;
 		
-		for (IfcProduct ifcProduct : model.getAllWithSubTypes(IfcProduct.class)) {
-			if (ifcProduct.getGeometry() != null) {
-				m2 += ifcProduct.getGeometry().getArea();
-				m3 += ifcProduct.getGeometry().getVolume();
-				Bounds boundsMm = ifcProduct.getGeometry().getBoundsMm();
+		for (IdEObject ifcProduct : model.getAllWithSubTypes(packageMetaData.getEClass("IfcProduct"))) {
+			GeometryInfo geometry = (GeometryInfo) ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("geometry"));
+			if (geometry != null) {
+				m2 += geometry.getArea();
+				m3 += geometry.getVolume();
+				Bounds boundsMm = geometry.getBoundsMm();
 				
 				m2bb += IfcTools3d.getArea(boundsMm);
 				m3bb += IfcTools3d.getVolume(boundsMm);
@@ -195,6 +243,7 @@ public class Task implements Callable<AnalyzedModel> {
 	}
 
 	private void addMeta(IfcModelInterface model) {
+		PackageMetaData packageMetaData = model.getPackageMetaData();
 		MetaData metaData = new MetaData();
 		
 		ModelMetaData modelMetaData = model.getModelMetaData();
@@ -204,10 +253,11 @@ public class Task implements Callable<AnalyzedModel> {
 		metaData.setRevisionId(revisionId);
 		
 		Set<String> classificationsSet = new HashSet<>();
-		List<IfcClassification> classifications = model.getAll(IfcClassification.class);
-		for (IfcClassification ifcClassificationReference : classifications) {
-			if (ifcClassificationReference.getName() != null) {
-				classificationsSet.add(ifcClassificationReference.getName());
+		List<IdEObject> classifications = model.getAll(packageMetaData.getEClass("IfcClassification"));
+		for (IdEObject ifcClassificationReference : classifications) {
+			String name = (String) ifcClassificationReference.eGet(ifcClassificationReference.eClass().getEStructuralFeature("Name"));
+			if (name != null) {
+				classificationsSet.add(name);
 			}
 		}
 		metaData.setClassifications(classificationsSet);

@@ -17,7 +17,7 @@ public class LocalTest {
 		try (BimServerClientFactory factory = new JsonBimServerClientFactory("http://localhost:8080")) {
 			try (BimServerClientInterface client = factory.create(new UsernamePasswordAuthenticationInfo("admin@bimserver.org", "admin"))) {
 				ModelSetAnalyzer modelSetAnalyzer = new ModelSetAnalyzer(client);
-				List<SProject> projects = client.getServiceInterface().getProjectsByName("AC11");
+				List<SProject> projects = client.getServiceInterface().getProjectsByName("IFC4");
 				for (SProject project : projects) {
 					long roid = project.getLastRevisionId();
 					if (roid != -1) {
@@ -26,7 +26,7 @@ public class LocalTest {
 				}
 				modelSetAnalyzer.awaitTermination();
 				AnalyzedModelSet results = modelSetAnalyzer.getResults();
-				results.toExcel(Paths.get("ac11.xlsx"));
+				results.toExcel(Paths.get("ifc4.xlsx"));
 			}
 		} catch (BimServerClientException e) {
 			e.printStackTrace();
