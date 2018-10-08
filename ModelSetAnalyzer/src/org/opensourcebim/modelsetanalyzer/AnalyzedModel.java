@@ -24,8 +24,12 @@ public class AnalyzedModel {
 	}
 	
 	public void toExcel(Sheet metaSheet, Sheet aggregationsSheet, Sheet objectsSheet) {
-		metaData.toExcel(metaSheet.createRow(metaData.getRevisionId()));
-		aggregation.toExcel(aggregationsSheet, aggregation.getRevisionId());
+		if (metaData != null) {
+			metaData.toExcel(metaSheet.createRow(metaData.getRevisionId()));
+		}
+		if (aggregation != null) {
+			aggregation.toExcel(aggregationsSheet, aggregation.getRevisionId());
+		}
 		int rowId = 2;
 		for (ProductResult productResult : productResults) {
 			productResult.addToSheet(objectsSheet, rowId++);

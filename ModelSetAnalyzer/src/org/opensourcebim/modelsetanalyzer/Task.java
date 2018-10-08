@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.bimserver.client.ClientIfcModel;
 import org.bimserver.database.queries.om.Include;
 import org.bimserver.database.queries.om.Include.TypeDef;
 import org.bimserver.database.queries.om.JsonQueryObjectModelConverter;
@@ -48,13 +47,11 @@ public class Task implements Callable<AnalyzedModel> {
 	@Override
 	public AnalyzedModel call() throws Exception {
 		System.out.println("Loading " + project.getName());
-		long start = System.nanoTime();
-		IfcModelInterface model = client.getModel(project, roid, false, false, true);
-		
-		Query preloadQuery = new Query(model.getPackageMetaData());
-		QueryPart objectsPart = preloadQuery.createQueryPart();
-		
 		try {
+			IfcModelInterface model = client.getModel(project, roid, false, false, true);
+			
+			Query preloadQuery = new Query(model.getPackageMetaData());
+			QueryPart objectsPart = preloadQuery.createQueryPart();
 			objectsPart.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true));
 			Include include = objectsPart.createInclude();
 			include.addType(Ifc2x3tc1Package.eINSTANCE.getIfcProduct(), true);
@@ -107,23 +104,21 @@ public class Task implements Callable<AnalyzedModel> {
 			ifcMaterialLayer2.addType(Ifc2x3tc1Package.eINSTANCE.getIfcMaterialLayer(), false);
 			ifcMaterialLayer2.addField("Material");
 			
-		} catch (QueryException e) {
+			QueryPart classifications = preloadQuery.createQueryPart();
+			classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcClassificationReference(), false));
+			classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcRelAssociatesClassification(), false));
+			
+			addMeta(model);
+
+			model.query(new JsonQueryObjectModelConverter(model.getPackageMetaData()).toJson(preloadQuery), true);
+			
+			addObjects(model);
+			addAggregations(model);
+		} catch (Exception e) {
+			System.err.println(project.getName());
 			e.printStackTrace();
 		}
-		
-		QueryPart classifications = preloadQuery.createQueryPart();
-		classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcClassificationReference(), false));
-		classifications.addType(new TypeDef(Ifc2x3tc1Package.eINSTANCE.getIfcRelAssociatesClassification(), false));
-		
-		model.query(new JsonQueryObjectModelConverter(model.getPackageMetaData()).toJson(preloadQuery), true);
-		
-		addMeta(model);
-		addObjects(model);
-		addAggregations(model);
-		
-		((ClientIfcModel)model).getClientDebugInfo().dump();
-		long end = System.nanoTime();
-		System.out.println(((end - start) / 1000000) + " ms");
+
 		analyzedModelSet.add(analyzedModel);
 		return analyzedModel;
 	}
@@ -193,8 +188,8 @@ public class Task implements Callable<AnalyzedModel> {
 		
 		aggregation.setM2(m2);
 		aggregation.setM3(m3);
-		aggregation.setM2AABB(m2bb);
-		aggregation.setM3AABB(m3bb);
+		aggregation.setM2AABB(m2bb / (1000 * 1000));
+		aggregation.setM3AABB(m3bb / (1000 * 1000 * 1000));
 		
 		analyzedModel.setAggregation(aggregation);
 	}

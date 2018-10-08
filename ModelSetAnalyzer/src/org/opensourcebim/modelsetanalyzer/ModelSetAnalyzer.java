@@ -17,9 +17,11 @@ public class ModelSetAnalyzer {
 	private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(64, 64, 12, TimeUnit.HOURS, new ArrayBlockingQueue<>(1000));
 	private AnalyzedModelSet analyzedModelSet = new AnalyzedModelSet();
 	private int revisionIdCounter = 1;
+	private long start;
 
 	public ModelSetAnalyzer(BimServerClientInterface client) {
 		this.client = client;
+		start = System.nanoTime();
 	}
 
 	public void addRevision(SProject project, long roid) throws UserException, ServerException, PublicInterfaceNotFoundException, BimServerClientException {
@@ -31,6 +33,8 @@ public class ModelSetAnalyzer {
 		try {
 			threadPoolExecutor.shutdown();
 			threadPoolExecutor.awaitTermination(8, TimeUnit.HOURS);
+			long end = System.nanoTime();
+			System.out.println(((end - start) / 1000000) + " ms");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

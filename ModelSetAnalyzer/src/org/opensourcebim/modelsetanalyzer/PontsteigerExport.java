@@ -18,7 +18,7 @@ public class PontsteigerExport {
 		try (BimServerClientFactory factory = new JsonBimServerClientFactory("http://localhost:8080")) {
 			try (BimServerClientInterface client = factory.create(new UsernamePasswordAuthenticationInfo("admin@bimserver.org", "admin"))) {
 				ModelSetAnalyzer modelSetAnalyzer = new ModelSetAnalyzer(client);
-				List<SProject> projects = client.getServiceInterface().getProjectsByName("Pontsteiger Full 2");
+				List<SProject> projects = client.getServiceInterface().getProjectsByName("Pontsteiger Full.zip");
 				SProject mainProject = projects.get(0);
 				for (SProjectSmall smallProject : client.getServiceInterface().getAllRelatedProjects(mainProject.getOid())) {
 					long roid = smallProject.getLastRevisionId();
@@ -30,7 +30,7 @@ public class PontsteigerExport {
 					}
 				}
 				modelSetAnalyzer.awaitTermination();
-				modelSetAnalyzer.getResults().toExcel(Paths.get("pontsteiger.xls"));
+				modelSetAnalyzer.getResults().toExcel(Paths.get("pontsteiger.xlsx"));
 			}
 		} catch (BimServerClientException e) {
 			e.printStackTrace();
