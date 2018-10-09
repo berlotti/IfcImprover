@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -19,7 +18,8 @@ public class AnalyzedModelSet {
 	private Workbook workbook;
 	private Sheet metaSheet;
 	private Sheet aggregationsSheet;
-	private Sheet objectsSheet;
+	private List<Sheet> objectsSheets = new ArrayList<>();
+	private int rowId = 2;
 
 	public AnalyzedModelSet() {
 	}
@@ -55,38 +55,50 @@ public class AnalyzedModelSet {
 		row.createCell(7).setCellValue("Bounding box M2");
 		row.createCell(8).setCellValue("Bounding box M3");
 
-		objectsSheet = workbook.createSheet("Objects");
-		row = objectsSheet.createRow(0);
-		row.createCell(0).setCellValue("Model ID");
-		row.createCell(1).setCellValue("Type");
-		row.createCell(2).setCellValue("Name");
-		row.createCell(3).setCellValue("Description");
-		row.createCell(4).setCellValue("GUID");
-		row.createCell(5).setCellValue("Material");
-		row.createCell(6).setCellValue("Classification AssociationName");
-		row.createCell(7).setCellValue("Classification Identification");
-		row.createCell(8).setCellValue("Classification ItemReference");
-		row.createCell(9).setCellValue("Classification Location");
-		row.createCell(10).setCellValue("Classification Name");
-		row.createCell(11).setCellValue("Triangles");
-		row.createCell(12).setCellValue("Points");
-		row.createCell(13).setCellValue("Property sets");
-		row.createCell(14).setCellValue("Psets");
-		row.createCell(15).setCellValue("Properties");
-		row.createCell(16).setCellValue("Geometric M2");
-		row.createCell(17).setCellValue("Geometric M3");
-		row.createCell(18).setCellValue("Quantity M2");
-		row.createCell(19).setCellValue("Quantity M3");
-
 		analyzedModels.sort((AnalyzedModel o1, AnalyzedModel o2) -> o1.getModelId() - o2.getModelId());
 
-		int newRowId = 2;
 		for (AnalyzedModel analyzedModel : analyzedModels) {
-			newRowId = analyzedModel.toExcel(metaSheet, aggregationsSheet, objectsSheet, newRowId);
+			Sheet objectSheet = getObjectSheet(rowId + analyzedModel.getNrResults());
+			rowId = analyzedModel.toExcel(metaSheet, aggregationsSheet, objectSheet, rowId);
 		}
 
 		try (OutputStream fileOut = new FileOutputStream(path.toFile())) {
 			workbook.write(fileOut);
+		}
+	}
+	
+	public Sheet getObjectSheet(int rowId) {
+		if (rowId >= 100 || objectsSheets.isEmpty()) {
+			Sheet objectsSheet = workbook.createSheet("Objects (" + (objectsSheets.size() + 1) + ")");
+			objectsSheets.add(objectsSheet);
+
+			Row row = objectsSheet.createRow(0);
+			row.createCell(0).setCellValue("Model ID");
+			row.createCell(1).setCellValue("Type");
+			row.createCell(2).setCellValue("Name");
+			row.createCell(3).setCellValue("Description");
+			row.createCell(4).setCellValue("GUID");
+			row.createCell(5).setCellValue("Material");
+			row.createCell(6).setCellValue("Classification AssociationName");
+			row.createCell(7).setCellValue("Classification Identification");
+			row.createCell(8).setCellValue("Classification ItemReference");
+			row.createCell(9).setCellValue("Classification Location");
+			row.createCell(10).setCellValue("Classification Name");
+			row.createCell(11).setCellValue("Triangles");
+			row.createCell(12).setCellValue("Points");
+			row.createCell(13).setCellValue("Property sets");
+			row.createCell(14).setCellValue("Psets");
+			row.createCell(15).setCellValue("Properties");
+			row.createCell(16).setCellValue("Geometric M2");
+			row.createCell(17).setCellValue("Geometric M3");
+			row.createCell(18).setCellValue("Quantity M2");
+			row.createCell(19).setCellValue("Quantity M3");
+			
+			this.rowId = 2;
+			
+			return objectsSheet;
+		} else {
+			return objectsSheets.get(objectsSheets.size() - 1);
 		}
 	}
 

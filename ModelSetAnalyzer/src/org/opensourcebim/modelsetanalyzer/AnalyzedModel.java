@@ -32,6 +32,10 @@ public class AnalyzedModel {
 		this.metaData = metaData;
 	}
 	
+	public int getNrResults() {
+		return productResults.size();
+	}
+	
 	public int toExcel(Sheet metaSheet, Sheet aggregationsSheet, Sheet objectsSheet, int startRow) {
 		if (metaData != null) {
 			metaData.toExcel(metaSheet.createRow(metaData.getRevisionId()));
