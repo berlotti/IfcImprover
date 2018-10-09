@@ -21,18 +21,14 @@ import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.Bounds;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.geometry.GeometryPackage;
-import org.bimserver.models.ifc2x3tc1.Ifc2x3tc1Package;
-import org.bimserver.models.ifc2x3tc1.IfcProduct;
 import org.bimserver.models.ifc4.IfcClassificationReference;
 import org.bimserver.models.ifc4.IfcObjectDefinition;
-import org.bimserver.models.ifc4.IfcRelAssignsToProduct;
 import org.bimserver.models.ifc4.IfcRelDefinesByType;
 import org.bimserver.models.ifc4.IfcTypeProduct;
 import org.bimserver.models.store.IfcHeader;
 import org.bimserver.plugins.services.BimServerClientInterface;
 import org.bimserver.utils.IfcTools3d;
 import org.bimserver.utils.IfcUtils;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
@@ -40,7 +36,7 @@ public class Task implements Callable<AnalyzedModel> {
 	private SProject project;
 	private long roid;
 	private BimServerClientInterface client;
-	private AnalyzedModel analyzedModel = new AnalyzedModel();
+	private AnalyzedModel analyzedModel;
 	private int revisionId;
 	private AnalyzedModelSet analyzedModelSet;
 
@@ -50,6 +46,7 @@ public class Task implements Callable<AnalyzedModel> {
 		this.project = project;
 		this.roid = roid;
 		this.revisionId = revisionId;
+		this.analyzedModel = new AnalyzedModel(revisionId);
 	}
 	
 	@Override
@@ -79,6 +76,9 @@ public class Task implements Callable<AnalyzedModel> {
 			Include relatingPropertyDefinition = isDefinedBy.createInclude();
 			relatingPropertyDefinition.addType(packageMetaData.getEClass("IfcPropertySet"), false);
 			relatingPropertyDefinition.addField("HasProperties");
+			Include relatingPropertyDefinition2 = isDefinedBy.createInclude();
+			relatingPropertyDefinition2.addType(packageMetaData.getEClass("IfcElementQuantity"), false);
+			relatingPropertyDefinition2.addField("Quantities");
 			
 			// Materials
 			Include associations = objectsPart.createInclude();
@@ -129,14 +129,17 @@ public class Task implements Callable<AnalyzedModel> {
 			} else {
 				// In ifc2x3tc1 this relation is missing, which is annoying
 			}
-			
+
+
 			addMeta(model);
 
 			model.query(new JsonQueryObjectModelConverter(packageMetaData).toJson(preloadQuery), true);
 			
 			addObjects(model);
 			addAggregations(model);
-		} catch (Exception e) {
+			
+//			model.dumpDebug();
+		} catch (Throwable e) {
 			System.err.println(project.getName());
 			e.printStackTrace();
 		}
@@ -148,7 +151,7 @@ public class Task implements Callable<AnalyzedModel> {
 	private void addObjects(IfcModelInterface model) {
 		PackageMetaData packageMetaData = model.getPackageMetaData();
 		List<IdEObject> products = model.getAllWithSubTypes(packageMetaData.getEClass("IfcProduct"));
-		Map<Long, Set<String>> classifications = new HashMap<>();
+		Map<Long, Set<Classification>> classifications = new HashMap<>();
 		EClass ifcRelAssociatesClassificationEClass = packageMetaData.getEClass("IfcRelAssociatesClassification");
 		List<IdEObject> all = model.getAllWithSubTypes(ifcRelAssociatesClassificationEClass);
 		for (IdEObject ifcRelAssociatesClassification : all) {
@@ -157,15 +160,15 @@ public class Task implements Callable<AnalyzedModel> {
 					IfcTypeProduct ifcTypeProduct = (IfcTypeProduct)ifcRoot;
 					for (IfcRelDefinesByType ifcRelAssignsToProduct : ifcTypeProduct.getTypes()) {
 						for (IfcObjectDefinition ifcObjectDefinition : ifcRelAssignsToProduct.getRelatedObjects()) {
-							if (ifcObjectDefinition instanceof org.bimserver.models.ifc4.IfcProduct) {
-								addProductToSet(classifications, ifcRelAssociatesClassificationEClass, ifcRelAssociatesClassification, ifcObjectDefinition);
+							if (model.getPackageMetaData().getEClass("IfcProduct").isSuperTypeOf(ifcObjectDefinition.eClass())) {
+								addProductToSet(classifications, ifcRelAssociatesClassification, ifcObjectDefinition);
 							} else {
 								System.out.println("Unimplemented " + ifcObjectDefinition);
 							}
 						}
 					}
 				}
-				addProductToSet(classifications, ifcRelAssociatesClassificationEClass, ifcRelAssociatesClassification, ifcRoot);
+				addProductToSet(classifications, ifcRelAssociatesClassification, ifcRoot);
 			}
 		}
 		for (IdEObject ifcProduct : products) {
@@ -184,37 +187,44 @@ public class Task implements Callable<AnalyzedModel> {
 			
 			analyzedModel.addProduct(productResult);
 
+			Double area = IfcUtils.getIfcQuantityArea(ifcProduct);
+			if (area != null) {
+				productResult.setQuantityArea(area);
+			}
+			Double volume = IfcUtils.getIfcQuantityVolume(ifcProduct);
+			if (volume != null) {
+				productResult.setQuantityVolume(volume);
+			}
+			
 			GeometryInfo geometry = (GeometryInfo) ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("geometry"));
 			if (geometry != null) {
 				productResult.setNrTriangles(geometry.getPrimitiveCount());
-				productResult.setArea((float) geometry.getArea());
-				productResult.setVolume((float) geometry.getVolume());
+				productResult.setGeometricArea((float) geometry.getArea());
+				productResult.setGeometricVolume((float) geometry.getVolume());
  			}
 		}
 	}
 
-	private void addProductToSet(Map<Long, Set<String>> classifications, EClass ifcRelAssociatesClassificationEClass, IdEObject ifcRelAssociatesClassification, IdEObject ifcObjectDefinition) {
-		Set<String> set = classifications.get(ifcObjectDefinition.getOid());
+	private void addProductToSet(Map<Long, Set<Classification>> classifications, IdEObject ifcRelAssociatesClassification, IdEObject ifcObjectDefinition) {
+		Set<Classification> set = classifications.get(ifcObjectDefinition.getOid());
 		if (set == null) {
 			set = new HashSet<>();
 			classifications.put(ifcObjectDefinition.getOid(), set);
 		}
-		EStructuralFeature nameFeature = ifcRelAssociatesClassificationEClass.getEStructuralFeature("Name");
+		Classification classification = new Classification();
 		IdEObject relatingClassification = (IdEObject) ifcRelAssociatesClassification.eGet(ifcRelAssociatesClassification.eClass().getEStructuralFeature("RelatingClassification"));
-		String classificationDescription = "";
 		if (relatingClassification != null) {
-			classificationDescription = (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Location"));
+			classification.setLocation((String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Location")));
 			if (relatingClassification instanceof IfcClassificationReference) {
-				classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Identification"));
+				classification.setIdentification((String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Identification")));
 			} else {
-				classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("ItemReference"));
+				classification.setItemReference((String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("ItemReference")));
 			}
-			classificationDescription += " " + (String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Name"));
+			classification.setName((String) relatingClassification.eGet(relatingClassification.eClass().getEStructuralFeature("Name")));
 		}
-		classificationDescription += " " + (String)ifcRelAssociatesClassification.eGet(nameFeature);
-		if (ifcRelAssociatesClassification.eGet(nameFeature) != null) {
-			set.add(classificationDescription);
-		}
+		EStructuralFeature nameFeature = ifcRelAssociatesClassification.eClass().getEStructuralFeature("Name");
+		classification.setAssociationName((String)ifcRelAssociatesClassification.eGet(nameFeature));
+		set.add(classification);
 	}
 
 	private void addAggregations(IfcModelInterface model) {
@@ -226,6 +236,7 @@ public class Task implements Callable<AnalyzedModel> {
 		aggregation.setModelSize(model.size());
 		aggregation.setIfcRelationsShipCount(model.countWithSubtypes(packageMetaData.getEClass("IfcRelationship")));
 		aggregation.setIfcProductCount(model.countWithSubtypes(packageMetaData.getEClass("IfcProduct")));
+		aggregation.setNrOfAssemblies(model.countWithSubtypes(packageMetaData.getEClass("IfcElementAssembly")));
 		
 		float m2 = 0;
 		float m3 = 0;

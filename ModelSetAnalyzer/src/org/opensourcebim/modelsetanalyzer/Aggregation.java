@@ -8,6 +8,7 @@ public class Aggregation {
 	private long size;
 	private int countWithSubtypes;
 	private int productCount;
+	private int nrOfAssemblies;
 	private float m2;
 	private float m3;
 	private float m2bb;
@@ -24,7 +25,7 @@ public class Aggregation {
 	public void setSize(long size) {
 		this.size = size;
 	}
-
+	
 	public int getCountWithSubtypes() {
 		return countWithSubtypes;
 	}
@@ -107,9 +108,18 @@ public class Aggregation {
 		row.createCell(1).setCellValue(size);
 		row.createCell(2).setCellValue(countWithSubtypes);
 		row.createCell(3).setCellValue(productCount);
-		row.createCell(4).setCellValue(m2);
-		row.createCell(5).setCellValue(m3);
-		row.createCell(6).setCellValue(m2bb);
-		row.createCell(7).setCellValue(m3bb);
+		row.createCell(4).setCellValue(nrOfAssemblies);
+		row.createCell(5).setCellValue(m2);
+		row.createCell(6).setCellValue(m3);
+		row.createCell(7).setCellValue(m2bb);
+		row.createCell(8).setCellValue(m3bb);
+	}
+
+	public int getNrOfAssemblies() {
+		return nrOfAssemblies;
+	}
+
+	public void setNrOfAssemblies(int nrOfAssemblies) {
+		this.nrOfAssemblies = nrOfAssemblies;
 	}
 }

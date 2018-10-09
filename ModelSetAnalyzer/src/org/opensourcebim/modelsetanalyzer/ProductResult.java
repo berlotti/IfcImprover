@@ -5,19 +5,17 @@ import java.util.Set;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
-import com.google.common.base.Joiner;
-
 public class ProductResult {
 	private String type;
 	private String description;
 	private String globalId;
 	private String name;
-	private Set<String> classifications;
+	private Set<Classification> classifications;
 	private int nrPSets;
 	private int nrPropertySets;
 	private int nrProperties;
-	private float area;
-	private float volume;
+	private float geometricArea;
+	private float geometricVolume;
 	private int revisionId;
 	private String material;
 
@@ -45,11 +43,11 @@ public class ProductResult {
 		this.name = name;
 	}
 
-	public Set<String> getClassifications() {
+	public Set<Classification> getClassifications() {
 		return classifications;
 	}
 
-	public void setClassifications(Set<String> classifications) {
+	public void setClassifications(Set<Classification> classifications) {
 		this.classifications = classifications;
 	}
 
@@ -77,20 +75,20 @@ public class ProductResult {
 		this.nrProperties = nrProperties;
 	}
 
-	public float getArea() {
-		return area;
+	public float getGeometricArea() {
+		return geometricArea;
 	}
 
-	public void setArea(float area) {
-		this.area = area;
+	public void setGeometricArea(float area) {
+		this.geometricArea = area;
 	}
 
-	public float getVolume() {
-		return volume;
+	public float getGeometricVolume() {
+		return geometricVolume;
 	}
 
-	public void setVolume(float volume) {
-		this.volume = volume;
+	public void setGeometricVolume(float volume) {
+		this.geometricVolume = volume;
 	}
 
 	public int getNrTriangles() {
@@ -106,6 +104,8 @@ public class ProductResult {
 	}
 
 	private int nrTriangles;
+	private Double quantityArea;
+	private Double quantityVolume;
 
 	public void setType(String type) {
 		this.type = type;
@@ -125,15 +125,22 @@ public class ProductResult {
 		}
 //		Set<String> classification = classifications.get(ifcProduct);
 		if (classifications != null) {
-			row.createCell(6).setCellValue(Joiner.on(", ").join(classifications));
+			Classification first = classifications.iterator().next();
+			row.createCell(6).setCellValue(first.getAssociationName());
+			row.createCell(7).setCellValue(first.getIdentification());
+			row.createCell(8).setCellValue(first.getItemReference());
+			row.createCell(9).setCellValue(first.getLocation());
+			row.createCell(10).setCellValue(first.getName());
 		}
-		row.createCell(7).setCellValue("" + nrTriangles);
-		row.createCell(8).setCellValue("TODO");
-		row.createCell(9).setCellValue("" + nrPropertySets);
-		row.createCell(10).setCellValue("" + nrPSets);
-		row.createCell(11).setCellValue("" + nrProperties);
-		row.createCell(12).setCellValue("" + area);
-		row.createCell(13).setCellValue("" + volume);
+		row.createCell(11).setCellValue("" + nrTriangles);
+		row.createCell(12).setCellValue("TODO");
+		row.createCell(13).setCellValue("" + nrPropertySets);
+		row.createCell(14).setCellValue("" + nrPSets);
+		row.createCell(15).setCellValue("" + nrProperties);
+		row.createCell(16).setCellValue("" + geometricArea);
+		row.createCell(17).setCellValue("" + geometricVolume);
+		row.createCell(18).setCellValue("" + (quantityArea == null ? "" : quantityArea));
+		row.createCell(19).setCellValue("" + (quantityVolume == null ? "" : quantityVolume));
 	}
 
 	public int getRevisionId() {
@@ -150,5 +157,21 @@ public class ProductResult {
 
 	public void setMaterial(String material) {
 		this.material = material;
+	}
+
+	public void setQuantityArea(Double quantityArea) {
+		this.quantityArea = quantityArea;
+	}
+	
+	public Double getQuantityArea() {
+		return quantityArea;
+	}
+
+	public void setQuantityVolume(Double quantityVolume) {
+		this.quantityVolume = quantityVolume;
+	}
+	
+	public Double getQuantityVolume() {
+		return quantityVolume;
 	}
 }

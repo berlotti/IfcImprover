@@ -14,7 +14,7 @@ import org.bimserver.shared.exceptions.UserException;
 public class ModelSetAnalyzer {
 
 	private BimServerClientInterface client;
-	private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(64, 64, 12, TimeUnit.HOURS, new ArrayBlockingQueue<>(1000));
+	private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4, 4, 12, TimeUnit.HOURS, new ArrayBlockingQueue<>(1000));
 	private AnalyzedModelSet analyzedModelSet = new AnalyzedModelSet();
 	private int revisionIdCounter = 1;
 	private long start;
