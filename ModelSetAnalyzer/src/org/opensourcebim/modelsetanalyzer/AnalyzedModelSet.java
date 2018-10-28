@@ -11,7 +11,7 @@ import java.util.List;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 public class AnalyzedModelSet {
 	private final List<AnalyzedModel> analyzedModels = new ArrayList<>();
@@ -25,7 +25,7 @@ public class AnalyzedModelSet {
 	}
 
 	public void toExcel(Path path) throws FileNotFoundException, IOException {
-		workbook = new XSSFWorkbook();
+		workbook = new SXSSFWorkbook(100);
 
 		metaSheet = workbook.createSheet("Meta");
 
