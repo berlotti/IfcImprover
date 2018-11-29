@@ -5,7 +5,7 @@ import java.util.Set;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
-public class ProductResult {
+public class ProductResult extends Excellable {
 	private String type;
 	private String description;
 	private String globalId;
@@ -106,6 +106,8 @@ public class ProductResult {
 	private int nrTriangles;
 	private Double quantityArea;
 	private Double quantityVolume;
+	private long oid;
+	private long geometryDataOid;
 
 	public void setType(String type) {
 		this.type = type;
@@ -113,34 +115,36 @@ public class ProductResult {
 
 	public void addToSheet(Sheet sheet, int rowId) {
 		Row row = sheet.createRow(rowId);
-		row.createCell(0).setCellValue("" + getRevisionId());
-		row.createCell(1).setCellValue(getType());
-		row.createCell(2).setCellValue(getName());
-		row.createCell(3).setCellValue(getDescription());
-		row.createCell(4).setCellValue(getGlobalId());
+		add(row, 0, getRevisionId());
+		add(row, 1, getOid());
+		add(row, 2, getType());
+		add(row, 3, getName());
+		add(row, 4, getDescription());
+		add(row, 5, getGlobalId());
 
 //		String material = IfcUtils.getMaterial(ifcProduct);
 		if (getMaterial() != null) {
-			row.createCell(5).setCellValue(getMaterial());
+			add(row, 6, getMaterial());
 		}
 //		Set<String> classification = classifications.get(ifcProduct);
 		if (classifications != null) {
 			Classification first = classifications.iterator().next();
-			row.createCell(6).setCellValue(first.getAssociationName());
-			row.createCell(7).setCellValue(first.getIdentification());
-			row.createCell(8).setCellValue(first.getItemReference());
-			row.createCell(9).setCellValue(first.getLocation());
-			row.createCell(10).setCellValue(first.getName());
+			add(row, 7, first.getAssociationName());
+			add(row, 8, first.getIdentification());
+			add(row, 9, first.getItemReference());
+			add(row, 10, first.getLocation());
+			add(row, 11, first.getName());
 		}
-		row.createCell(11).setCellValue("" + nrTriangles);
-		row.createCell(12).setCellValue("TODO");
-		row.createCell(13).setCellValue("" + nrPropertySets);
-		row.createCell(14).setCellValue("" + nrPSets);
-		row.createCell(15).setCellValue("" + nrProperties);
-		row.createCell(16).setCellValue("" + geometricArea);
-		row.createCell(17).setCellValue("" + geometricVolume);
-		row.createCell(18).setCellValue("" + (quantityArea == null ? "" : quantityArea));
-		row.createCell(19).setCellValue("" + (quantityVolume == null ? "" : quantityVolume));
+		add(row, 12, nrTriangles);
+		add(row, 13, "TODO");
+		add(row, 14, nrPropertySets);
+		add(row, 15, nrPSets);
+		add(row, 16, nrProperties);
+		add(row, 17, geometricArea);
+		add(row, 18, geometricVolume);
+		add(row, 19, (quantityArea == null ? "" : quantityArea));
+		add(row, 20, (quantityVolume == null ? "" : quantityVolume));
+		add(row, 21, geometryDataOid);
 	}
 
 	public int getRevisionId() {
@@ -173,5 +177,21 @@ public class ProductResult {
 	
 	public Double getQuantityVolume() {
 		return quantityVolume;
+	}
+
+	public long getOid() {
+		return oid;
+	}
+
+	public void setOid(long oid) {
+		this.oid = oid;
+	}
+
+	public void setGeometryDataOid(long geometryDataOid) {
+		this.geometryDataOid = geometryDataOid;
+	}
+	
+	public long getGeometryDataOid() {
+		return geometryDataOid;
 	}
 }

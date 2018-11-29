@@ -19,6 +19,7 @@ import org.bimserver.emf.PackageMetaData;
 import org.bimserver.emf.Schema;
 import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.Bounds;
+import org.bimserver.models.geometry.GeometryData;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.geometry.GeometryPackage;
 import org.bimserver.models.ifc4.IfcClassificationReference;
@@ -29,6 +30,7 @@ import org.bimserver.models.store.IfcHeader;
 import org.bimserver.plugins.services.BimServerClientInterface;
 import org.bimserver.utils.IfcTools3d;
 import org.bimserver.utils.IfcUtils;
+import org.codehaus.plexus.logging.Logger;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
@@ -136,6 +138,7 @@ public class Task implements Callable<AnalyzedModel> {
 			model.query(new JsonQueryObjectModelConverter(packageMetaData).toJson(preloadQuery), true);
 			
 			addObjects(model);
+			addGeometryData(model);
 			addAggregations(model);
 			
 //			model.dumpDebug();
@@ -146,6 +149,15 @@ public class Task implements Callable<AnalyzedModel> {
 
 		analyzedModelSet.add(analyzedModel);
 		return analyzedModel;
+	}
+
+	private void addGeometryData(IfcModelInterface model) {
+		for (GeometryData geometryData : model.getAll(GeometryData.class)) {
+			Geometry geometry = new Geometry(geometryData, analyzedModel.getGeometryDataType(geometryData.getOid()));
+			geometry.setRevisionId(revisionId);
+			
+			analyzedModel.addGeometryData(geometry);
+		}
 	}
 
 	private void addObjects(IfcModelInterface model) {
@@ -174,6 +186,7 @@ public class Task implements Callable<AnalyzedModel> {
 		for (IdEObject ifcProduct : products) {
 			ProductResult productResult = new ProductResult();
 			
+			productResult.setOid(ifcProduct.getOid());
 			productResult.setRevisionId(revisionId);
 			productResult.setType(ifcProduct.eClass().getName());
 			productResult.setName((String)ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("Name")));
@@ -182,7 +195,7 @@ public class Task implements Callable<AnalyzedModel> {
 			productResult.setMaterial(IfcUtils.getMaterial(ifcProduct));
 			productResult.setClassifications(classifications.get(ifcProduct.getOid()));
 			productResult.setNrPropertySets(IfcUtils.getNrOfPropertySets(ifcProduct));
-			productResult.setNrPSets(IfcUtils.getNrOfPSets(ifcProduct));
+			productResult.setNrPSets(IfcUtils.getNrOfPSets(ifcProduct, true));
 			productResult.setNrProperties(IfcUtils.getNrOfProperties(ifcProduct));
 			
 			analyzedModel.addProduct(productResult);
@@ -198,6 +211,12 @@ public class Task implements Callable<AnalyzedModel> {
 			
 			GeometryInfo geometry = (GeometryInfo) ifcProduct.eGet(ifcProduct.eClass().getEStructuralFeature("geometry"));
 			if (geometry != null) {
+				if (geometry.getData() != null) {
+					productResult.setGeometryDataOid(geometry.getData().getOid());
+					analyzedModel.addGeometryDataIdToType(geometry.getData().getOid(), ifcProduct.eClass().getName());
+				} else {
+					System.out.println("No data for " + ifcProduct.eClass().getName());
+				}
 				productResult.setNrTriangles(geometry.getPrimitiveCount());
 				productResult.setGeometricArea((float) geometry.getArea());
 				productResult.setGeometricVolume((float) geometry.getVolume());

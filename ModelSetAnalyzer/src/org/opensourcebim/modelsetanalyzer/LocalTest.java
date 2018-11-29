@@ -15,10 +15,10 @@ import org.bimserver.shared.exceptions.ServiceException;
 
 public class LocalTest {
 	public static void main(String[] args) {
-		try (BimServerClientFactory factory = new JsonBimServerClientFactory("http://localhost:8080")) {
-			try (BimServerClientInterface client = factory.create(new UsernamePasswordAuthenticationInfo("admin@bimserver.org", "admin"))) {
+		try (BimServerClientFactory factory = new JsonBimServerClientFactory(args[0])) {
+			try (BimServerClientInterface client = factory.create(new UsernamePasswordAuthenticationInfo(args[1], args[2]))) {
 				ModelSetAnalyzer modelSetAnalyzer = new ModelSetAnalyzer(client);
-				List<SProject> projects = client.getServiceInterface().getProjectsByName("bulk.zip");
+				List<SProject> projects = client.getServiceInterface().getProjectsByName(args[3]);
 				SProject mainProject = projects.get(0);
 				for (SProjectSmall smallProject : client.getServiceInterface().getAllRelatedProjects(mainProject.getOid())) {
 					long roid = smallProject.getLastRevisionId();
@@ -31,7 +31,7 @@ public class LocalTest {
 				}
 				modelSetAnalyzer.awaitTermination();
 				AnalyzedModelSet results = modelSetAnalyzer.getResults();
-				results.toExcel(Paths.get("bulk.xlsx"));
+				results.toExcel(Paths.get(args[3] + ".xlsx"));
 			}
 		} catch (BimServerClientException e) {
 			e.printStackTrace();

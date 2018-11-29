@@ -19,7 +19,9 @@ public class AnalyzedModelSet {
 	private Sheet metaSheet;
 	private Sheet aggregationsSheet;
 	private List<Sheet> objectsSheets = new ArrayList<>();
-	private int rowId = 2;
+	private List<Sheet> geometrySheets = new ArrayList<>();
+	private int objectRowId = 2;
+	private int geometryRowId = 2;
 
 	public AnalyzedModelSet() {
 	}
@@ -58,8 +60,10 @@ public class AnalyzedModelSet {
 		analyzedModels.sort((AnalyzedModel o1, AnalyzedModel o2) -> o1.getModelId() - o2.getModelId());
 
 		for (AnalyzedModel analyzedModel : analyzedModels) {
-			Sheet objectSheet = getObjectSheet(rowId + analyzedModel.getNrResults());
-			rowId = analyzedModel.toExcel(metaSheet, aggregationsSheet, objectSheet, rowId);
+			Sheet objectSheet = getObjectSheet(objectRowId + analyzedModel.getNrProducts());
+			Sheet geometrySheet = getGeometrySheet(geometryRowId + analyzedModel.getNrGeometries());
+			objectRowId = analyzedModel.objectsToExcel(metaSheet, aggregationsSheet, objectSheet, objectRowId);
+			geometryRowId = analyzedModel.geometryToExcel(metaSheet, aggregationsSheet, geometrySheet, geometryRowId);
 		}
 
 		try (OutputStream fileOut = new FileOutputStream(path.toFile())) {
@@ -68,37 +72,59 @@ public class AnalyzedModelSet {
 	}
 	
 	public Sheet getObjectSheet(int rowId) {
-		if (rowId >= 100 || objectsSheets.isEmpty()) {
+		if (rowId >= 1000000 || objectsSheets.isEmpty()) {
 			Sheet objectsSheet = workbook.createSheet("Objects (" + (objectsSheets.size() + 1) + ")");
 			objectsSheets.add(objectsSheet);
 
 			Row row = objectsSheet.createRow(0);
 			row.createCell(0).setCellValue("Model ID");
-			row.createCell(1).setCellValue("Type");
-			row.createCell(2).setCellValue("Name");
-			row.createCell(3).setCellValue("Description");
-			row.createCell(4).setCellValue("GUID");
-			row.createCell(5).setCellValue("Material");
-			row.createCell(6).setCellValue("Classification AssociationName");
-			row.createCell(7).setCellValue("Classification Identification");
-			row.createCell(8).setCellValue("Classification ItemReference");
-			row.createCell(9).setCellValue("Classification Location");
-			row.createCell(10).setCellValue("Classification Name");
-			row.createCell(11).setCellValue("Triangles");
-			row.createCell(12).setCellValue("Points");
-			row.createCell(13).setCellValue("Property sets");
-			row.createCell(14).setCellValue("Psets");
-			row.createCell(15).setCellValue("Properties");
-			row.createCell(16).setCellValue("Geometric M2");
-			row.createCell(17).setCellValue("Geometric M3");
-			row.createCell(18).setCellValue("Quantity M2");
-			row.createCell(19).setCellValue("Quantity M3");
+			row.createCell(1).setCellValue("Oid");
+			row.createCell(2).setCellValue("Type");
+			row.createCell(3).setCellValue("Name");
+			row.createCell(4).setCellValue("Description");
+			row.createCell(5).setCellValue("GUID");
+			row.createCell(6).setCellValue("Material");
+			row.createCell(7).setCellValue("Classification AssociationName");
+			row.createCell(8).setCellValue("Classification Identification");
+			row.createCell(9).setCellValue("Classification ItemReference");
+			row.createCell(10).setCellValue("Classification Location");
+			row.createCell(11).setCellValue("Classification Name");
+			row.createCell(12).setCellValue("Triangles");
+			row.createCell(13).setCellValue("Points");
+			row.createCell(14).setCellValue("Property sets");
+			row.createCell(15).setCellValue("Psets");
+			row.createCell(16).setCellValue("Properties");
+			row.createCell(17).setCellValue("Geometric M2");
+			row.createCell(18).setCellValue("Geometric M3");
+			row.createCell(19).setCellValue("Quantity M2");
+			row.createCell(20).setCellValue("Quantity M3");
+			row.createCell(20).setCellValue("GeometryData Oid");
 			
-			this.rowId = 2;
+			this.objectRowId = 2;
 			
 			return objectsSheet;
 		} else {
 			return objectsSheets.get(objectsSheets.size() - 1);
+		}
+	}
+
+	public Sheet getGeometrySheet(int rowId) {
+		if (rowId >= 1000000 || geometrySheets.isEmpty()) {
+			Sheet geometrySheet = workbook.createSheet("Geometry (" + (geometrySheets.size() + 1) + ")");
+			geometrySheets.add(geometrySheet);
+			
+			Row row = geometrySheet.createRow(0);
+			row.createCell(0).setCellValue("Model ID");
+			row.createCell(1).setCellValue("Geometry ID");
+			row.createCell(2).setCellValue("Reused");
+			row.createCell(3).setCellValue("Triangles");
+			row.createCell(4).setCellValue("Triangles to save");
+			
+			this.geometryRowId = 2;
+			
+			return geometrySheet;
+		} else {
+			return geometrySheets.get(geometrySheets.size() - 1);
 		}
 	}
 
