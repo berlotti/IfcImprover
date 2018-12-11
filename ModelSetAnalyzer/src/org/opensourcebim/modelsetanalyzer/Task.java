@@ -30,7 +30,6 @@ import org.bimserver.models.store.IfcHeader;
 import org.bimserver.plugins.services.BimServerClientInterface;
 import org.bimserver.utils.IfcTools3d;
 import org.bimserver.utils.IfcUtils;
-import org.codehaus.plexus.logging.Logger;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
@@ -160,6 +159,7 @@ public class Task implements Callable<AnalyzedModel> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void addObjects(IfcModelInterface model) {
 		PackageMetaData packageMetaData = model.getPackageMetaData();
 		List<IdEObject> products = model.getAllWithSubTypes(packageMetaData.getEClass("IfcProduct"));

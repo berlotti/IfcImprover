@@ -22,7 +22,15 @@ public class Geometry extends Excellable {
 		add(row, 2, geometryData.getReused());
 		add(row, 3, (geometryData.getNrIndices() / 3));
 		add(row, 4, geometryData.getSaveableTriangles());
-		add(row, 5, type);
+		int estimatedBytes = 
+			geometryData.getNrIndices() * 4 +
+			geometryData.getNrVertices() * 2 +
+			geometryData.getNrNormals() +
+			geometryData.getNrVertices() + // colors
+			geometryData.getNrVertices() / 3 * 4 // picking
+			;
+		add(row, 5, estimatedBytes);
+		add(row, 6, type);
 	}
 	
 	public void setRevisionId(int revisionId) {

@@ -119,6 +119,8 @@ public class AnalyzedModelSet {
 			row.createCell(2).setCellValue("Reused");
 			row.createCell(3).setCellValue("Triangles");
 			row.createCell(4).setCellValue("Triangles to save");
+			row.createCell(5).setCellValue("Estimated byte size");
+			row.createCell(6).setCellValue("Type");
 			
 			this.geometryRowId = 2;
 			
