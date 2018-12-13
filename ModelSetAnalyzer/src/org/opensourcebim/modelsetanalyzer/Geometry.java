@@ -2,15 +2,15 @@ package org.opensourcebim.modelsetanalyzer;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.bimserver.models.geometry.GeometryData;
+import org.bimserver.interfaces.objects.SGeometryData;
 
 public class Geometry extends Excellable {
 
-	private GeometryData geometryData;
+	private SGeometryData geometryData;
 	private int revisionId;
 	private String type;
 
-	public Geometry(GeometryData geometryData, String type) {
+	public Geometry(SGeometryData geometryData, String type) {
 		this.geometryData = geometryData;
 		this.type = type;
 	}

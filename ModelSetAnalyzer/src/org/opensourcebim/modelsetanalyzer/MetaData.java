@@ -5,17 +5,17 @@ import java.text.SimpleDateFormat;
 import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Row;
-import org.bimserver.models.store.IfcHeader;
+import org.bimserver.interfaces.objects.SIfcHeader;
 
 import com.google.common.base.Joiner;
 
 public class MetaData {
 
-	private IfcHeader ifcHeader;
+	private SIfcHeader ifcHeader;
 	private int revisionId;
 	private Set<String> classifications;
 
-	public void getIfcHeader(IfcHeader ifcHeader) {
+	public void setIfcHeader(SIfcHeader ifcHeader) {
 		this.ifcHeader = ifcHeader;
 	}
 	

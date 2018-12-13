@@ -1,5 +1,6 @@
 package org.opensourcebim.modelsetanalyzer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,8 @@ import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.emf.ModelMetaData;
 import org.bimserver.emf.PackageMetaData;
 import org.bimserver.emf.Schema;
+import org.bimserver.interfaces.objects.SGeometryData;
+import org.bimserver.interfaces.objects.SIfcHeader;
 import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.Bounds;
 import org.bimserver.models.geometry.GeometryData;
@@ -131,11 +134,9 @@ public class Task implements Callable<AnalyzedModel> {
 				// In ifc2x3tc1 this relation is missing, which is annoying
 			}
 
+			model.query(new JsonQueryObjectModelConverter(packageMetaData).toJson(preloadQuery), true);
 
 			addMeta(model);
-
-			model.query(new JsonQueryObjectModelConverter(packageMetaData).toJson(preloadQuery), true);
-			
 			addObjects(model);
 			addGeometryData(model);
 			addAggregations(model);
@@ -152,7 +153,19 @@ public class Task implements Callable<AnalyzedModel> {
 
 	private void addGeometryData(IfcModelInterface model) {
 		for (GeometryData geometryData : model.getAll(GeometryData.class)) {
-			Geometry geometry = new Geometry(geometryData, analyzedModel.getGeometryDataType(geometryData.getOid()));
+			SGeometryData sGeometryData = new SGeometryData();
+			
+			// Just copy what we need, making a copy so we don't keep a reference to GeometryData
+			sGeometryData.setOid(geometryData.getOid());
+			sGeometryData.setNrIndices(geometryData.getNrIndices());
+			sGeometryData.setNrColors(geometryData.getNrColors());
+			sGeometryData.setNrNormals(geometryData.getNrNormals());
+			sGeometryData.setNrVertices(geometryData.getNrVertices());
+			sGeometryData.setHasTransparency(geometryData.isHasTransparency());
+			sGeometryData.setReused(geometryData.getReused());
+			sGeometryData.setSaveableTriangles(geometryData.getSaveableTriangles());
+			
+			Geometry geometry = new Geometry(sGeometryData, analyzedModel.getGeometryDataType(geometryData.getOid()));
 			geometry.setRevisionId(revisionId);
 			
 			analyzedModel.addGeometryData(geometry);
@@ -288,8 +301,20 @@ public class Task implements Callable<AnalyzedModel> {
 		
 		ModelMetaData modelMetaData = model.getModelMetaData();
 		IfcHeader ifcHeader = modelMetaData.getIfcHeader();
+
+		SIfcHeader sIfcHeader = new SIfcHeader();
+		sIfcHeader.setAuthor(new ArrayList<>(ifcHeader.getAuthor()));
+		sIfcHeader.setAuthorization(ifcHeader.getAuthorization());
+		sIfcHeader.setDescription(new ArrayList<>(ifcHeader.getDescription()));
+		sIfcHeader.setFilename(ifcHeader.getFilename());
+		sIfcHeader.setIfcSchemaVersion(ifcHeader.getIfcSchemaVersion());
+		sIfcHeader.setImplementationLevel(ifcHeader.getImplementationLevel());
+		sIfcHeader.setOrganization(new ArrayList<>(ifcHeader.getOrganization()));
+		sIfcHeader.setOriginatingSystem(ifcHeader.getOriginatingSystem());
+		sIfcHeader.setPreProcessorVersion(ifcHeader.getPreProcessorVersion());
+		sIfcHeader.setTimeStamp(ifcHeader.getTimeStamp());
 		
-		metaData.getIfcHeader(ifcHeader);
+		metaData.setIfcHeader(sIfcHeader);
 		metaData.setRevisionId(revisionId);
 		
 		Set<String> classificationsSet = new HashSet<>();

@@ -33,6 +33,7 @@ public class LocalTest {
 				AnalyzedModelSet results = modelSetAnalyzer.getResults();
 				results.toExcel(Paths.get(args[3] + ".xlsx"));
 			}
+			Thread.sleep(10000000);
 		} catch (BimServerClientException e) {
 			e.printStackTrace();
 		} catch (ServiceException e) {
